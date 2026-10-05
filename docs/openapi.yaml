@@ -1,0 +1,275 @@
+openapi: 3.0.3
+info:
+  title: Scalable URL Shortener API
+  description: |
+    Production-quality high-throughput URL shortening and real-time click analytics REST API.
+    Built with Laravel 10, Redis 7, MySQL 8, and Clean Architecture.
+  version: 1.0.0
+servers:
+  - url: http://localhost:8000
+    description: Local Development Server
+paths:
+  /health:
+    get:
+      summary: System Health Probe
+      description: Returns health status of database, redis, and queue subsystems.
+      responses:
+        '200':
+          description: All subsystems healthy
+        '503':
+          description: One or more subsystems degraded
+  /api/v1/auth/register:
+    post:
+      summary: Register a new user
+      tags: [Authentication]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password]
+              properties:
+                name:
+                  type: string
+                  example: Jane Doe
+                email:
+                  type: string
+                  example: jane@example.com
+                password:
+                  type: string
+                  example: StrongSecret123
+      responses:
+        '201':
+          description: User registered successfully
+        '422':
+          description: Validation error
+  /api/v1/auth/login:
+    post:
+      summary: Login user and issue Sanctum token
+      tags: [Authentication]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  example: user@example.com
+                password:
+                  type: string
+                  example: password123
+      responses:
+        '200':
+          description: Authenticated successfully with Bearer token
+        '401':
+          description: Invalid credentials
+        '403':
+          description: Account suspended or inactive
+  /api/v1/auth/logout:
+    post:
+      summary: Revoke access token
+      tags: [Authentication]
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Token revoked
+  /api/v1/auth/me:
+    get:
+      summary: Get current authenticated user profile
+      tags: [Authentication]
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Current user profile
+  /api/v1/urls:
+    get:
+      summary: List user's URLs
+      tags: [URLs]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+            default: 15
+      responses:
+        '200':
+          description: Paginated URLs list
+    post:
+      summary: Shorten a new URL
+      tags: [URLs]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [original_url]
+              properties:
+                original_url:
+                  type: string
+                  example: https://laravel.com/docs/10.x
+                custom_alias:
+                  type: string
+                  example: laravel-10
+                title:
+                  type: string
+                  example: Laravel Documentation
+                expires_at:
+                  type: string
+                  format: date-time
+                  example: 2026-12-31T23:59:59Z
+      responses:
+        '201':
+          description: URL created successfully
+        '422':
+          description: Validation error or invalid URL scheme
+  /api/v1/urls/{id}:
+    get:
+      summary: Get URL details
+      tags: [URLs]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: URL details
+        '403':
+          description: Forbidden
+        '404':
+          description: URL not found
+    put:
+      summary: Update URL
+      tags: [URLs]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                custom_alias:
+                  type: string
+                is_active:
+                  type: boolean
+                expires_at:
+                  type: string
+                  format: date-time
+      responses:
+        '200':
+          description: URL updated
+    delete:
+      summary: Delete URL (soft delete)
+      tags: [URLs]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: URL deleted
+  /api/v1/urls/{id}/analytics:
+    get:
+      summary: Get URL click analytics
+      tags: [Analytics]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Detailed click analytics report
+  /{shortCode}:
+    get:
+      summary: Fast Redirect Endpoint
+      description: Resolves short code or alias via Redis cache and redirects with HTTP 302 Found.
+      tags: [Redirection]
+      parameters:
+        - name: shortCode
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '302':
+          description: Redirect to destination
+        '404':
+          description: URL not found
+        '410':
+          description: URL expired
+        '403':
+          description: URL deactivated
+  /api/v1/admin/stats:
+    get:
+      summary: Platform Overview Statistics (Admin)
+      tags: [Admin]
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: System stats
+  /api/v1/admin/users:
+    get:
+      summary: List all users (Admin)
+      tags: [Admin]
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: All platform users
+  /api/v1/admin/urls:
+    get:
+      summary: List all URLs platform-wide (Admin)
+      tags: [Admin]
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: All URLs
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: Sanctum
