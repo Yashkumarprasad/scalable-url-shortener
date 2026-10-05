@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Providers;
 
 use Illuminate\Cache\RateLimiting\Limit;
@@ -13,11 +15,9 @@ class RouteServiceProvider extends ServiceProvider
     /**
      * The path to the "home" route for your application.
      *
-     * Typically, users are redirected here after authentication.
-     *
      * @var string
      */
-    public const HOME = '/home';
+    public const HOME = '/';
 
     /**
      * Define your route model bindings, pattern filters, and other route configuration.
@@ -27,7 +27,7 @@ class RouteServiceProvider extends ServiceProvider
         $this->configureRateLimiting();
 
         $this->routes(function () {
-            Route::middleware('api')
+            Route::middleware(['api', 'force.json'])
                 ->prefix('api')
                 ->group(base_path('routes/api.php'));
 
@@ -41,8 +41,34 @@ class RouteServiceProvider extends ServiceProvider
      */
     protected function configureRateLimiting(): void
     {
+        // Global API rate limiter
         RateLimiter::for('api', function (Request $request) {
-            return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
+            $limit = config('ratelimit.api', 60);
+            return Limit::perMinute($limit)->by($request->user()?->id ?: $request->ip());
+        });
+
+        // Authentication endpoint rate limiter (10/min/IP)
+        RateLimiter::for('auth', function (Request $request) {
+            $limit = config('ratelimit.auth', 10);
+            return Limit::perMinute($limit)->by($request->ip());
+        });
+
+        // URL Creation rate limiter (60/min/User)
+        RateLimiter::for('urls.create', function (Request $request) {
+            $limit = config('ratelimit.urls_create', 60);
+            return Limit::perMinute($limit)->by($request->user()?->id ?: $request->ip());
+        });
+
+        // Redirect rate limiter (120/min/IP)
+        RateLimiter::for('redirect', function (Request $request) {
+            $limit = config('ratelimit.redirect', 120);
+            return Limit::perMinute($limit)->by($request->ip());
+        });
+
+        // Analytics API rate limiter (30/min/User)
+        RateLimiter::for('analytics', function (Request $request) {
+            $limit = config('ratelimit.analytics', 30);
+            return Limit::perMinute($limit)->by($request->user()?->id ?: $request->ip());
         });
     }
 }
