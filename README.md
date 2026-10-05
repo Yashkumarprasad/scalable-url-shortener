@@ -1,6 +1,6 @@
 # Scalable URL Shortener
 
-[![Tests & Code Quality](https://github.com/your-username/scalable-url-shortener/actions/workflows/tests.yml/badge.svg)](https://github.com/your-username/scalable-url-shortener/actions)
+[![Tests & Code Quality](https://github.com/Yashkumarprasad/scalable-url-shortener/actions/workflows/tests.yml/badge.svg)](https://github.com/Yashkumarprasad/scalable-url-shortener/actions)
 [![PHP Version](https://img.shields.io/badge/PHP-8.1-blue.svg)](https://php.net)
 [![Laravel Version](https://img.shields.io/badge/Laravel-10.x-red.svg)](https://laravel.com)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
@@ -216,7 +216,7 @@ php artisan queue:work redis --queue=analytics,default --sleep=3 --tries=3 --tim
 
 ```bash
 # 1. Clone repository
-git clone https://github.com/your-username/scalable-url-shortener.git
+git clone https://github.com/Yashkumarprasad/scalable-url-shortener.git
 cd scalable-url-shortener
 
 # 2. Install dependencies (strictly PHP 8.1 compatible)
